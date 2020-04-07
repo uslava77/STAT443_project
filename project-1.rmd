@@ -1,0 +1,60 @@
+# Group project
+Data Source: [Kaggle](https://www.kaggle.com/bappekim/air-pollution-in-seoul#Measurement_summary.csv)
+The plot of 2019 Air pollution data in Jongno-gu, Seoul.
+```{r}
+data <- read.csv("./data1year.csv",header=TRUE)
+pollution = as.ts(data$PM2.5)
+plot(pollution)
+```
+Based on the plot of the time series, we find no obvious trend or seasonal effect in the plot. But we can find there are some cyclical effect and a large value appears around 200.
+```{r}
+acf(pollution)
+```
+The acf plot has decreasing values with slight increases at lags 7, 9, and 12. Overall it looks like a damped sine (with no negative values) and not like an acf of a white-noise process of a stationary process.
+
+#Smooth time series
+```{r}
+pollution_diff = diff(pollution)
+plot(pollution_diff)
+acf(pollution_diff)
+pacf(pollution_diff)
+```
+After taking the first differences of the original time series, the acf plot looks like the result of a stationary process.The values are random and small for lag greater than 0. However, the value at lag 1 is a little higher than expected of a completely white noise process.
+
+#Model fitting
+1) Based on the acf and pacf plot of the differenced data, we try the first model ARMA(2,6).
+```{r}
+M1 = arima(pollution_diff,order = c(2,0,6), include.mean = FALSE)
+tsdiag(M1)
+AIC(M1)
+```
+The model fit well in terms of model diagnostics and have the lowest AIC values.
+Base on the term of model diagnostics, the plot shows all the p-value is larger in the Box- Ljung tests, above the sigiificant level 0.05, we are not reject the null hypothesis, so it is a good model fit. In term of AIC, we find the AIC value is equal to 3046.112. The AIC value kind large. 
+ 
+```{r}
+M2 = arima(pollution_diff,order = c(2,0,7), include.mean = FALSE)
+tsdiag(M2)
+AIC(M2)
+```
+Base on the term of model diagnostics, the plot shows all the p-value is larger in the Box- Ljung tests, above the sigiificant level 0.05, we are not reject the null hypothesis, so it is a good model fit. In term of AIC, we find the AIC value is equal to 3047.455. The AIC value kind larger than M1. So, M1 is slight better than M2. 
+
+
+#Forcast & Prediction
+Using the differences in December 2019 PM2.5 pollutate value as the test ser for the models and the remaining data as the train set, compare the models in abouve we choose.
+```{r}
+train =1:(length(pollution_diff)-30)
+trainx = pollution_diff[train]
+testx = pollution_diff[-train]
+model = arima (trainx, order = c(2,0,7))
+foremodel = predict (model, 30)
+err = sum ((testx - foremodel$pred)^2)
+print(err)
+```
+Base on the caculation above we find the sum of prediction error is 20174.76 over the test set.
+
+
+#Conclusion 
+This project is measure the air pollution PM2.5 in Seoul. We use dataset which measure average value of pollutant PM2.5 in Jongno-gu station code at each day 9:00am in 2019. 
+From the time series analysis, we find the model ARMA(2,0,6) is a good fitted model and we make the prediction about the future data and find the error term of the each model prediction.
+ 
+
